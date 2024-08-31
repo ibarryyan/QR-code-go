@@ -140,7 +140,10 @@
                                 tc: used_time
                             })
                         }
-                    );
+                    ).then(({ data }) => {
+                        console.log(data);
+                        window.location.href = `http://yankaka.chat:8080/static/${data}`;
+                    })
                 }
             }
         }
