@@ -128,6 +128,19 @@
                     alert('拼图完成!');
 
                     console.log('eeee:', used_time, username, imgId);
+
+                    fetch('/qrcode/gen', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                fileAddress: imgId,
+                                name: username,
+                                tc: used_time
+                            })
+                        }
+                    );
                 }
             }
         }
