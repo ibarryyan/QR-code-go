@@ -134,13 +134,18 @@
                             headers: {
                                 'Content-Type': 'application/json'
                             },
+
                             body: JSON.stringify({
+
                                 fileAddress: imgId,
                                 name: username,
                                 tc: used_time
                             })
                         }
-                    );
+                    ).then(({ data }) => {
+                        console.log(data);
+                        window.location.href = `http://yankaka.chat:8080/static/${data}`;
+                    })
                 }
             }
         }
