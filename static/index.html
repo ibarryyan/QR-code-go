@@ -11,7 +11,7 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            background: darkslategray;
+            background-color: rgba(0, 0, 0, 0.4);
         }
 
         .puzzle-container {
@@ -50,8 +50,15 @@
     
     <script>
         window.onload = function() {
+            let start_time = new Date();
+            let used_time = 0;
+            let url = new URL(window.location.href); 
+            let params = new URLSearchParams(url.search);
+            const username = params.get('username');
+            const imgId = params.get('imgId');
+
             const pieces = Array.from(document.querySelectorAll('.puzzle-piece'));
-            const imageSrc = 'https://cdn.pixabay.com/photo/2023/10/10/15/37/motorcycle-8306765_1280.jpg';
+            const imageSrc = `../pics/${imgId}.jpg`;
 
             // 将图片分为9块
             pieces.forEach((piece, index) => {
@@ -115,8 +122,12 @@
             function checkCompletion() {
                 const isCompleted = pieces.every((piece, index) => piece.dataset.index == index);
                 if (isCompleted) {
+                    let end_time = new Date();
+                    used_time = end_time - start_time;
                     pieces.forEach(piece => piece.classList.add('correct'));
                     alert('拼图完成!');
+
+                    console.log('eeee:', used_time, username, imgId);
                 }
             }
         }
