@@ -94,6 +94,7 @@ func runHttp() {
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/qrcode/gen", uploadFileHandler)
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("."))))
 	_ = http.Serve(listen, mux)
 }
 
