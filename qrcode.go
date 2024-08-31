@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"image"
+	"time"
+
 	"github.com/disintegration/imaging"
 	log "github.com/sirupsen/logrus"
 	"github.com/yeqown/go-qrcode/v2"
 	"github.com/yeqown/go-qrcode/writer/standard"
-	"image"
-	"time"
 )
 
 type LogoWidth int
@@ -95,7 +96,7 @@ func WithOutputFileSize(size OutputSize) Option {
 	}
 }
 
-func (g *QrCodeGen) GenQrCode() error {
+func (g *QrCodeGen) GenQrCode() (string, error) {
 	// 确认文件名称
 	qrFileName := fmt.Sprintf("%d.%s", time.Now().UnixMilli(), g.OutputFileType)
 	if g.Name != "" {
@@ -109,7 +110,7 @@ func (g *QrCodeGen) GenQrCode() error {
 	)
 	if err != nil {
 		log.Errorf("qrcode.NewWith error: %v", err)
-		return err
+		return "", err
 	}
 
 	// 基本内容
@@ -121,7 +122,7 @@ func (g *QrCodeGen) GenQrCode() error {
 		logoSrc, err := imaging.Open(g.LogoFile)
 		if err != nil {
 			log.Errorf("imaging.Open error: %v", err)
-			return err
+			return "", err
 		}
 		logoWidth, logoHeight := logoSrc.Bounds().Dx(), logoSrc.Bounds().Dy()
 
@@ -143,7 +144,7 @@ func (g *QrCodeGen) GenQrCode() error {
 		g.LogoFile = fmt.Sprintf("%s_tmp.%s", GetFileName(g.LogoFile), JPG)
 		if err = imaging.Save(resizeImg, g.LogoFile); err != nil {
 			log.Errorf("imaging.Save: %v", err)
-			return err
+			return "", err
 		}
 		imageOptions = append(imageOptions, standard.WithLogoImageFileJPEG(g.LogoFile))
 		imageOptions = append(imageOptions, standard.WithLogoSizeMultiplier(int(g.LogoWidth)))
@@ -160,11 +161,11 @@ func (g *QrCodeGen) GenQrCode() error {
 	w, err := standard.New(qrFileName, imageOptions...)
 	if err != nil {
 		log.Errorf("qrcode.NewWith error: %v", err)
-		return err
+		return "", err
 	}
 	if err = qrc.Save(w); err != nil {
 		log.Errorf("qrc.Save: %v", err)
-		return err
+		return "", err
 	}
-	return nil
+	return qrFileName, nil
 }

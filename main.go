@@ -1,20 +1,26 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
 )
 
-const DIR = "./tmp"
+const (
+	CodeTypeLogo = "logo"
+	DIR          = "./tmp"
+)
 
 func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
-	// 设置最大上传大小（可选）
-	err := r.ParseMultipartForm(32 << 20) // 32 MB
-	if err != nil {
+	// 设置最大上传大小  32 MB
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		log.Errorf("file size over")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -22,6 +28,7 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	// 获取文件
 	file, handler, err := r.FormFile("file")
 	if err != nil {
+		log.Errorf("form file err")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -30,13 +37,13 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	// 获取其他表单字段
-	name := r.FormValue("name")
-	//size := r.FormValue("size")
-	codeType := r.FormValue("codeType")
+	name, tc, codeType := r.FormValue("name"), r.FormValue("tc"), r.FormValue("codeType")
+	log.Infof("upload info name:%s , tc:%v , codeType:%v", name, tc, codeType)
 
 	// 处理文件上传
 	dst, err := os.Create(filepath.Join(DIR, handler.Filename))
 	if err != nil {
+		log.Errorf("create file err")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -45,27 +52,39 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	// 复制文件内容
-	_, err = io.Copy(dst, file)
-	if err != nil {
+	if _, err = io.Copy(dst, file); err != nil {
+		log.Errorf("copy file err")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	//生成二维码
-	if codeType == "logo" {
-		gen := NewQuCodeGen(name, WithLogoFile(fmt.Sprintf("%s/%s", DIR, handler.Filename)), WithLogoWidth(BIG))
-		if err := gen.GenQrCode(); err != nil {
-			fmt.Println(err)
-		}
+	options := make([]Option, 0)
+	if codeType == CodeTypeLogo {
+		options = append(options, WithLogoFile(fmt.Sprintf("%s/%s", DIR, handler.Filename)))
 	} else {
-		gen := NewQuCodeGen(name, WithHalftoneSrcFile(fmt.Sprintf("%s/%s", DIR, handler.Filename)))
-		if err := gen.GenQrCode(); err != nil {
-			fmt.Println(err)
-		}
+		options = append(options, WithHalftoneSrcFile(fmt.Sprintf("%s/%s", DIR, handler.Filename)))
+	}
+	options = append(options, WithLogoWidth(BIG))
+	qrCode, err := NewQuCodeGen(name, options...).GenQrCode()
+	if err != nil {
+		log.Errorf("gen qr code err")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	// 响应客户端
-	fmt.Fprintf(w, "File uploaded successfully: %s\n", handler.Filename)
+	resp, err := json.Marshal(map[string]interface{}{
+		"code": 200,
+		"data": qrCode,
+	})
+	if err != nil {
+		log.Errorf("json marshal err")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, _ = w.Write(resp)
+	return
 }
 
 func runHttp() {
@@ -74,7 +93,7 @@ func runHttp() {
 		panic(err)
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/gen", uploadFileHandler)
+	mux.HandleFunc("/qrcode/gen", uploadFileHandler)
 	_ = http.Serve(listen, mux)
 }
 
