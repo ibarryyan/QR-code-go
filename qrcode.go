@@ -158,7 +158,7 @@ func (g *QrCodeGen) GenQrCode() (string, error) {
 		}...)
 	}
 
-	w, err := standard.New(qrFileName, imageOptions...)
+	w, err := standard.New(fmt.Sprintf("%s/%s", "./static", qrFileName), imageOptions...)
 	if err != nil {
 		log.Errorf("qrcode.NewWith error: %v", err)
 		return "", err
