@@ -1,5 +1,9 @@
 ## QRCode
 
+拼图二维码游戏
+
+![main.png](img%2Fmain.png)
+
 ### 二维码生成
 
 api：
