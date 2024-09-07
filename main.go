@@ -22,9 +22,9 @@ type SuccessRes struct {
 }
 
 type Req struct {
-	fileAddress string
-	name        string
-	tc          int
+	FileAddress string `json:"fileAddress"`
+	Name        string `json:"name"`
+	Tc          int    `json:"tc"`
 }
 
 var strs = []string{
@@ -136,28 +136,27 @@ func uploadFileHandlerV2(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	var req Req
-	err = json.Unmarshal(body, &req)
-	if err != nil {
+	if err = json.Unmarshal(body, &req); err != nil {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
 		return
 	}
 
+	log.Infof("request body :%+v", req) //request body :{FileAddress:p2 Name:yanmingxin Tc:15828}
+
 	//生成二维码
 	options := make([]Option, 0)
-	//if codeType == CodeTypeLogo {
-	//	options = append(options, WithLogoFile(fmt.Sprintf("%s/%s", DIR, handler.Filename)))
-	//} else {
-	options = append(options, WithHalftoneSrcFile(fmt.Sprintf("%s/%s", "./pics/", req.fileAddress)))
-	//}
+	options = append(options, WithHalftoneSrcFile(fmt.Sprintf("%s/%s.png", "./static", req.FileAddress)))
 	options = append(options, WithLogoWidth(BIG))
 
-	contentUrl := fmt.Sprintf("%s?name=%s&tc=%d&str=%s", RootUrl, req.name, req.tc, getStr())
+	contentUrl := fmt.Sprintf("%s?name=%s&tc=%d&str=%s", RootUrl, req.Name, req.Tc, getStr())
 	qrCode, err := NewQuCodeGen(contentUrl, options...).GenQrCode()
 	if err != nil {
 		log.Errorf("gen qr code err")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	log.Infof("resp qrcode:%s", qrCode)
 
 	resp, err := json.Marshal(map[string]interface{}{
 		"code": 200,
@@ -192,7 +191,7 @@ func runHttp() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/qrcode/gen", uploadFileHandlerV2)
 	mux.HandleFunc("/success", success)
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("."))))
+	mux.Handle("/static/", http.StripPrefix("/", http.FileServer(http.Dir("."))))
 	_ = http.Serve(listen, mux)
 }
 

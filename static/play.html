@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拼图小游戏</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .puzzle-container {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 2px;
+            transform: scale(1.5);
+        }
+
+        .puzzle-piece {
+            width: 100px;
+            height: 100px;
+            background-size: 300px 300px;
+            cursor: pointer;
+            border: 1px solid #333;
+        }
+
+        .puzzle-piece.correct {
+            border: 2px solid green;
+        }
+    </style>
+</head>
+<body>
+<div class="puzzle-container">
+    <div class="puzzle-piece" data-index="0"></div>
+    <div class="puzzle-piece" data-index="1"></div>
+    <div class="puzzle-piece" data-index="2"></div>
+    <div class="puzzle-piece" data-index="3"></div>
+    <div class="puzzle-piece" data-index="4"></div>
+    <div class="puzzle-piece" data-index="5"></div>
+    <div class="puzzle-piece" data-index="6"></div>
+    <div class="puzzle-piece" data-index="7"></div>
+    <div class="puzzle-piece" data-index="8"></div>
+</div>
+
+<script>
+    window.onload = function () {
+        let start_time = new Date();
+        let used_time = 0;
+        let url = new URL(window.location.href);
+        let params = new URLSearchParams(url.search);
+        const username = params.get('username');
+        const imgId = params.get('imgId');
+
+        const pieces = Array.from(document.querySelectorAll('.puzzle-piece'));
+        const imageSrc = `../static/${imgId}.png`;
+
+        // 将图片分为9块
+        pieces.forEach((piece, index) => {
+            const x = index % 3;
+            const y = Math.floor(index / 3);
+            piece.style.backgroundImage = `url(${imageSrc})`;
+            piece.style.backgroundPosition = `-${x * 100}px -${y * 100}px`;
+            piece.draggable = true;
+        });
+
+        // 打乱顺序
+        pieces.sort(() => Math.random() - 0.5);
+        pieces.forEach(piece => document.querySelector('.puzzle-container').appendChild(piece));
+
+        let draggedPiece = null;
+        let targetPiece = null;
+
+        // 拖动开始
+        pieces.forEach(piece => {
+            piece.addEventListener('dragstart', (e) => {
+                draggedPiece = piece;
+            });
+
+            // 拖动结束
+            piece.addEventListener('dragend', () => {
+                if (targetPiece) {
+                    swapPieces(draggedPiece, targetPiece);
+                    targetPiece = null;
+                }
+                draggedPiece = null;
+            });
+
+            // 拖动到某个区域
+            piece.addEventListener('dragover', (e) => {
+                e.preventDefault();
+            });
+
+            piece.addEventListener('drop', (e) => {
+                e.preventDefault();
+                targetPiece = e.target;
+            });
+        });
+
+        // 交换图片块
+        function swapPieces(piece1, piece2) {
+            if (piece1 !== piece2) {
+                const tempIndex = piece1.dataset.index;
+                const tempStyle = piece1.style.cssText;
+
+                piece1.style.cssText = piece2.style.cssText;
+                piece1.dataset.index = piece2.dataset.index;
+
+                piece2.style.cssText = tempStyle;
+                piece2.dataset.index = tempIndex;
+
+                setTimeout(() => checkCompletion(), 200)
+            }
+        }
+
+        // 检查拼图是否完成
+        function checkCompletion() {
+            const isCompleted = pieces.every((piece, index) => piece.dataset.index == index);
+            if (isCompleted) {
+                let end_time = new Date();
+                used_time = end_time - start_time;
+                pieces.forEach(piece => piece.classList.add('correct'));
+                alert('拼图完成!');
+
+                console.log('input:', used_time, username, imgId);
+
+                fetch('/qrcode/gen', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+
+                        body: JSON.stringify({
+                            fileAddress: imgId,
+                            name: username,
+                            tc: used_time
+                        })
+                    }
+                ).then(resp => {
+                    if (!resp.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return resp.json(); // 解析 JSON 数据
+                }).then(data => {
+                    window.location.href = `/static/${data.data}`;
+                })
+            }
+        }
+    }
+</script>
+</body>
+</html>
