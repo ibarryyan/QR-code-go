@@ -3,16 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"io"
-	"math/rand"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
-	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type SuccessRes struct {
@@ -26,18 +23,6 @@ type Req struct {
 	Name        string `json:"name"`
 	Tc          int    `json:"tc"`
 }
-
-var strs = []string{
-	"恭喜你，你是一个真正的游戏大师！",
-	"你已经掌握了游戏的精髓，现在是时候去征服其他挑战了。",
-	"你的坚持和努力得到了回报，你应该为自己感到骄傲。",
-	"通关只是一个新的开始，前面还有更多的挑战和机遇等着你。",
-	"你的游戏技巧已经达到了一个新的高度，继续保持，你会更上一层楼。",
-	"游戏通关并不是终点，而是一个新的起点，希望你在游戏中找到更多的乐趣。",
-	"你的游戏成就证明了你的实力和毅力，希望你在未来的游戏中继续闪耀。",
-}
-
-var db map[string]*SuccessRes
 
 const (
 	CodeTypeLogo = "logo"
@@ -102,7 +87,7 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contentUrl := fmt.Sprintf("%s?name=%s&tc=%d&str=%s", RootUrl, name, num, getStr())
+	contentUrl := fmt.Sprintf("%s?name=%s&tc=%d", RootUrl, name, num)
 	qrCode, err := NewQuCodeGen(contentUrl, options...).GenQrCode()
 	if err != nil {
 		log.Errorf("gen qr code err")
@@ -148,7 +133,7 @@ func uploadFileHandlerV2(w http.ResponseWriter, r *http.Request) {
 	options = append(options, WithHalftoneSrcFile(fmt.Sprintf("%s/%s.png", "./static", req.FileAddress)))
 	options = append(options, WithLogoWidth(BIG))
 
-	contentUrl := fmt.Sprintf("%s?name=%s&tc=%d&str=%s", RootUrl, req.Name, req.Tc, getStr())
+	contentUrl := fmt.Sprintf("%s?name=%s&tc=%d", RootUrl, req.Name, req.Tc)
 	qrCode, err := NewQuCodeGen(contentUrl, options...).GenQrCode()
 	if err != nil {
 		log.Errorf("gen qr code err")
@@ -195,14 +180,7 @@ func runHttp() {
 	_ = http.Serve(listen, mux)
 }
 
-func getStr() string {
-	rand.Seed(time.Now().UnixNano())
-	randomNumber := rand.Intn(7)
-	return strs[randomNumber]
-}
-
 func main() {
-	db = make(map[string]*SuccessRes)
 	_ = os.Mkdir(DIR, os.ModePerm)
 	runHttp()
 }
