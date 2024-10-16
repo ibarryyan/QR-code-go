@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 )
 
 type SuccessRes struct {
@@ -27,8 +28,10 @@ type Req struct {
 const (
 	CodeTypeLogo = "logo"
 	DIR          = "./tmp"
-
-	RootUrl = "http://yankaka.chat:8080/success"
+	RootUrl      = "http://yankaka.chat:8081/success"
+	StaticPath   = "http://yankaka.chat:8081/static/"
+	FontPath     = "./font/hanyiyongzidingshenggaojianti.ttf"
+	TemplatePath = "./img/zht.jpeg"
 )
 
 func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
@@ -126,14 +129,16 @@ func uploadFileHandlerV2(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Infof("request body :%+v", req) //request body :{FileAddress:p2 Name:yanmingxin Tc:15828}
+	log.Infof("request body :%+v", req)
 
+	qrFileName := fmt.Sprintf("%d", time.Now().UnixMilli())
 	//生成二维码
 	options := make([]Option, 0)
 	options = append(options, WithHalftoneSrcFile(fmt.Sprintf("%s/%s.png", "./static", req.FileAddress)))
 	options = append(options, WithLogoWidth(BIG))
+	options = append(options, WithName(qrFileName))
 
-	contentUrl := fmt.Sprintf("%s?name=%s&tc=%d", RootUrl, req.Name, req.Tc)
+	contentUrl := fmt.Sprintf("%s?name=%s&tc=%d&img=%s", RootUrl, req.Name, req.Tc, fmt.Sprintf("%s.%s", qrFileName, DefaultFileType))
 	qrCode, err := NewQuCodeGen(contentUrl, options...).GenQrCode()
 	if err != nil {
 		log.Errorf("gen qr code err")
@@ -141,7 +146,7 @@ func uploadFileHandlerV2(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Infof("resp qrcode:%s", qrCode)
+	log.Infof("resp qrcode:%s, contentUrl:%s", qrCode, contentUrl)
 
 	resp, err := json.Marshal(map[string]interface{}{
 		"code": 200,
@@ -163,13 +168,61 @@ func success(w http.ResponseWriter, r *http.Request) {
 	// 获取其他表单字段
 	name := query.Get("name")
 	tc := query.Get("tc")
+	sourceImg := query.Get("img")
 
 	log.Printf("upload info name:%s, tc:%v", name, tc)
 
+	img := NewResImg(TemplatePath, []ResImgOption{
+		WithFontPath(FontPath),
+		WithFontSize(30),
+		WithContentImg(ContentImg{
+			ImagePath: fmt.Sprintf("%s%s", StaticPath, sourceImg),
+			Width:     280,
+			Height:    280,
+			LineWidth: 2,
+			Padding:   10,
+			X:         367,
+			Y:         410,
+		}),
+		WithContents([]Content{
+			{
+				Text: name,
+				X:    480,
+				Y:    735,
+			},
+			{
+				Text: "祝贺你完成拼图",
+				X:    415,
+				Y:    780,
+			},
+			{
+				Text: fmt.Sprintf("共计耗时%ss", tc),
+				X:    420,
+				Y:    825,
+			},
+			{
+				Text:     "公众号:扯编程的淡",
+				FontSize: 24,
+				X:        690,
+				Y:        855,
+			},
+		}),
+	})
+
+	_, fileName, err := img.Gen()
+	if err != nil {
+		log.Errorf("img gen err:%s", err)
+		return
+	}
+	redirectUrl := fmt.Sprintf("%s%s", StaticPath, fileName)
+
+	log.Infof("gen img fileName:%s , redirectUrl：%s", fileName, redirectUrl)
+
+	http.Redirect(w, r, redirectUrl, http.StatusFound)
 }
 
 func runHttp() {
-	listen, err := net.Listen("tcp", ":8080")
+	listen, err := net.Listen("tcp", ":8081")
 	if err != nil {
 		panic(err)
 	}

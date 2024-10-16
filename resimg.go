@@ -102,12 +102,12 @@ func WithContentImg(contentImg ContentImg) ResImgOption {
 	}
 }
 
-func (i *ResImg) Gen() (string, error) {
+func (i *ResImg) Gen() (string, string, error) {
 	// 根据路径打开模板文件
 	templateFile, err := os.Open(i.TemplateImg)
 	if err != nil {
 		log.Errorf("os open file err:%s", err)
-		return "", err
+		return "", "", err
 	}
 	defer func() {
 		_ = templateFile.Close()
@@ -117,7 +117,7 @@ func (i *ResImg) Gen() (string, error) {
 	templateFileImage, err := jpeg.Decode(templateFile)
 	if err != nil {
 		log.Errorf("png decode err:%s", err)
-		return "", err
+		return "", "", err
 	}
 	// 新建一张和模板文件一样大小的画布
 	newTemplateImage := image.NewRGBA(templateFileImage.Bounds())
@@ -128,26 +128,27 @@ func (i *ResImg) Gen() (string, error) {
 	font, err := LoadFont(i.FontPath)
 	if err != nil {
 		log.Errorf("load font err:%s", err)
-		return "", err
+		return "", "", err
 	}
 
 	// 向图片中写入文字
 	if err := i.writeWord2Pic(font, newTemplateImage, i.Contents); err != nil {
 		log.Errorf("write word err:%s", err)
-		return "", err
+		return "", "", err
 	}
 
 	if err := i.writeImg2Pic(newTemplateImage); err != nil {
 		log.Errorf("write image err:%s", err)
-		return "", err
+		return "", "", err
 	}
 
-	fileName := fmt.Sprintf("%s%d.png", i.DstFilePath, time.Now().Unix())
-	if err = SaveFile(fileName, newTemplateImage); err != nil {
+	fileName := fmt.Sprintf("%d.png", time.Now().Unix())
+	filePath := fmt.Sprintf("%s%s", i.DstFilePath, fileName)
+	if err = SaveFile(filePath, newTemplateImage); err != nil {
 		log.Errorf("save file err:%s", err)
-		return "", err
+		return "", "", err
 	}
-	return fileName, nil
+	return filePath, fileName, nil
 }
 
 func (i *ResImg) writeWord2Pic(font *truetype.Font, newTemplateImage *image.RGBA, contents []Content) error {
