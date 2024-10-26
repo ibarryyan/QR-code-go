@@ -4,20 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 	"io"
 	"net"
 	"net/http"
 	"os"
-	"path/filepath"
-	"strconv"
 	"time"
 )
-
-type SuccessRes struct {
-	Name     string
-	Tc       int
-	Sentence string
-}
 
 type Req struct {
 	FileAddress string `json:"fileAddress"`
@@ -26,94 +19,13 @@ type Req struct {
 }
 
 const (
-	CodeTypeLogo = "logo"
-	DIR          = "./tmp"
-	RootUrl      = "http://yankaka.chat:8081/success"
-	StaticPath   = "http://yankaka.chat:8081/static/"
 	FontPath     = "./font/hanyiyongzidingshenggaojianti.ttf"
 	TemplatePath = "./img/zht.jpeg"
 )
 
 func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
-	// 设置最大上传大小  32 MB
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		log.Errorf("file size over")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	successUrl := fmt.Sprintf("%s/success", GetGlobalConfig().Domain)
 
-	// 获取文件
-	file, handler, err := r.FormFile("file")
-	if err != nil {
-		log.Errorf("form file err")
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	defer func() {
-		_ = file.Close()
-	}()
-
-	// 获取其他表单字段
-	name, tc, codeType := r.FormValue("name"), r.FormValue("tc"), r.FormValue("codeType")
-	log.Infof("upload info name:%s , tc:%v , codeType:%v", name, tc, codeType)
-
-	// 处理文件上传
-	dst, err := os.Create(filepath.Join(DIR, handler.Filename))
-	if err != nil {
-		log.Errorf("create file err")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer func() {
-		_ = dst.Close()
-	}()
-
-	// 复制文件内容
-	if _, err = io.Copy(dst, file); err != nil {
-		log.Errorf("copy file err")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	//生成二维码
-	options := make([]Option, 0)
-	if codeType == CodeTypeLogo {
-		options = append(options, WithLogoFile(fmt.Sprintf("%s/%s", DIR, handler.Filename)))
-	} else {
-		options = append(options, WithHalftoneSrcFile(fmt.Sprintf("%s/%s", DIR, handler.Filename)))
-	}
-	options = append(options, WithLogoWidth(BIG))
-
-	num, err := strconv.Atoi(tc)
-	if err != nil {
-		log.Errorf("conver int err:%s", err)
-		return
-	}
-
-	contentUrl := fmt.Sprintf("%s?name=%s&tc=%d", RootUrl, name, num)
-	qrCode, err := NewQuCodeGen(contentUrl, options...).GenQrCode()
-	if err != nil {
-		log.Errorf("gen qr code err")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	resp, err := json.Marshal(map[string]interface{}{
-		"code": 200,
-		"data": qrCode,
-	})
-	if err != nil {
-		log.Errorf("json marshal err")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	_, _ = w.Write(resp)
-	return
-}
-
-func uploadFileHandlerV2(w http.ResponseWriter, r *http.Request) {
-	// 读取请求体
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Error reading request body", http.StatusInternalServerError)
@@ -137,8 +49,10 @@ func uploadFileHandlerV2(w http.ResponseWriter, r *http.Request) {
 	options = append(options, WithHalftoneSrcFile(fmt.Sprintf("%s/%s.png", "./static", req.FileAddress)))
 	options = append(options, WithLogoWidth(BIG))
 	options = append(options, WithName(qrFileName))
+	options = append(options, WithPath(GetGlobalConfig().TmpPath))
 
-	contentUrl := fmt.Sprintf("%s?name=%s&tc=%d&img=%s", RootUrl, req.Name, req.Tc, fmt.Sprintf("%s.%s", qrFileName, DefaultFileType))
+	contentUrl := fmt.Sprintf("%s?name=%s&tc=%d&img=%s",
+		successUrl, req.Name, req.Tc, fmt.Sprintf("%s.%s", qrFileName, DefaultFileType))
 	qrCode, err := NewQuCodeGen(contentUrl, options...).GenQrCode()
 	if err != nil {
 		log.Errorf("gen qr code err")
@@ -150,7 +64,7 @@ func uploadFileHandlerV2(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := json.Marshal(map[string]interface{}{
 		"code": 200,
-		"data": qrCode,
+		"data": fmt.Sprintf("%s%s/%s", GetGlobalConfig().Domain, GetGlobalConfig().TmpPath, qrCode),
 	})
 	if err != nil {
 		log.Errorf("json marshal err")
@@ -163,20 +77,22 @@ func uploadFileHandlerV2(w http.ResponseWriter, r *http.Request) {
 }
 
 func success(w http.ResponseWriter, r *http.Request) {
+	tmpUrl := fmt.Sprintf("%s%s", GetGlobalConfig().Domain, GetGlobalConfig().TmpPath)
+
 	// 解析查询参数
 	query := r.URL.Query()
 	// 获取其他表单字段
 	name := query.Get("name")
-	tc := query.Get("tc")
+	tc := cast.ToInt32(query.Get("tc")) / 1000
 	sourceImg := query.Get("img")
 
-	log.Printf("upload info name:%s, tc:%v", name, tc)
+	log.Printf("upload info name:%s, tc:%v, tmpUrl:%s", name, tc, tmpUrl)
 
 	img := NewResImg(TemplatePath, []ResImgOption{
 		WithFontPath(FontPath),
 		WithFontSize(30),
 		WithContentImg(ContentImg{
-			ImagePath: fmt.Sprintf("%s%s", StaticPath, sourceImg),
+			ImagePath: fmt.Sprintf("%s/%s", tmpUrl, sourceImg),
 			Width:     280,
 			Height:    280,
 			LineWidth: 2,
@@ -184,29 +100,8 @@ func success(w http.ResponseWriter, r *http.Request) {
 			X:         367,
 			Y:         410,
 		}),
-		WithContents([]Content{
-			{
-				Text: name,
-				X:    480,
-				Y:    735,
-			},
-			{
-				Text: "祝贺你完成拼图",
-				X:    415,
-				Y:    780,
-			},
-			{
-				Text: fmt.Sprintf("共计耗时%ss", tc),
-				X:    420,
-				Y:    825,
-			},
-			{
-				Text:     "公众号:扯编程的淡",
-				FontSize: 24,
-				X:        690,
-				Y:        855,
-			},
-		}),
+		WithContents(GetSuccessContent(name, tc)),
+		WithDstPath(fmt.Sprintf(".%s/", GetGlobalConfig().TmpPath)),
 	})
 
 	_, fileName, err := img.Gen()
@@ -214,26 +109,32 @@ func success(w http.ResponseWriter, r *http.Request) {
 		log.Errorf("img gen err:%s", err)
 		return
 	}
-	redirectUrl := fmt.Sprintf("%s%s", StaticPath, fileName)
+	redirectUrl := fmt.Sprintf("%s/%s", tmpUrl, fileName)
 
 	log.Infof("gen img fileName:%s , redirectUrl：%s", fileName, redirectUrl)
-
 	http.Redirect(w, r, redirectUrl, http.StatusFound)
 }
 
 func runHttp() {
+	tmpPath := fmt.Sprintf("%s/", GetGlobalConfig().TmpPath)
+
 	listen, err := net.Listen("tcp", ":8081")
 	if err != nil {
 		panic(err)
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/qrcode/gen", uploadFileHandlerV2)
+	mux.HandleFunc("/qrcode/gen", uploadFileHandler)
 	mux.HandleFunc("/success", success)
 	mux.Handle("/static/", http.StripPrefix("/", http.FileServer(http.Dir("."))))
+	mux.Handle(tmpPath, http.StripPrefix("/", http.FileServer(http.Dir("."))))
 	_ = http.Serve(listen, mux)
 }
 
 func main() {
-	_ = os.Mkdir(DIR, os.ModePerm)
+	InitConfig()
+
+	log.Infof("starting server config: %+v", GetGlobalConfig())
+
+	_ = os.Mkdir(fmt.Sprintf(".%s/", GetGlobalConfig().TmpPath), os.ModePerm)
 	runHttp()
 }

@@ -1,6 +1,0 @@
-server:
-  port: 8081
-  static-path: /static
-
-web:
-  domain: http://yankaka.chat:8081

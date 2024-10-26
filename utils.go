@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"github.com/golang/freetype"
 	"github.com/golang/freetype/truetype"
 	"image"
@@ -99,4 +100,30 @@ func LoadFont(path string) (*truetype.Font, error) {
 		return nil, err
 	}
 	return font, nil
+}
+
+func GetSuccessContent(name string, tc int32) []Content {
+	return []Content{
+		{
+			Text: name,
+			X:    480,
+			Y:    735,
+		},
+		{
+			Text: "祝贺你完成拼图",
+			X:    415,
+			Y:    780,
+		},
+		{
+			Text: fmt.Sprintf("共计耗时%d秒", tc),
+			X:    420,
+			Y:    825,
+		},
+		{
+			Text:     "公众号:扯编程的淡",
+			FontSize: 24,
+			X:        690,
+			Y:        855,
+		},
+	}
 }

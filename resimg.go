@@ -19,11 +19,10 @@ import (
 type ResImgOption func(*ResImg)
 
 const (
-	DefaultFontSize     = 48
-	DefaultDPI          = 70
-	DefaultTemplatePath = "test.png"
-	DefaultFontPath     = "hanyiyongzidingshenggaojianti.ttf"
-	DefaultDstFilePath  = "./static/"
+	DefaultFontSize    = 48
+	DefaultDPI         = 70
+	DefaultDstFilePath = "./static/"
+	DefaultFontPath    = "hanyiyongzidingshenggaojianti.ttf"
 )
 
 type ResImg struct {
@@ -58,7 +57,6 @@ func NewResImg(templatePath string, opts []ResImgOption) *ResImg {
 		FontPath:    DefaultFontPath,
 		FontSize:    DefaultFontSize,
 		DPI:         DefaultDPI,
-		TemplateImg: DefaultTemplatePath,
 		DstFilePath: DefaultDstFilePath,
 	}
 
@@ -99,6 +97,12 @@ func WithDPI(dpi int) ResImgOption {
 func WithContentImg(contentImg ContentImg) ResImgOption {
 	return func(img *ResImg) {
 		img.ContentImg = contentImg
+	}
+}
+
+func WithDstPath(path string) ResImgOption {
+	return func(img *ResImg) {
+		img.DstFilePath = path
 	}
 }
 
@@ -153,7 +157,6 @@ func (i *ResImg) Gen() (string, string, error) {
 
 func (i *ResImg) writeWord2Pic(font *truetype.Font, newTemplateImage *image.RGBA, contents []Content) error {
 	initContentSetting := func(c *freetype.Context) {
-		//content.SetSrc(image.NewUniform(color.RGBA{R: 237, G: 39, B: 90, A: 255}))
 		c.SetSrc(image.Black)
 		c.SetDPI(float64(i.DPI))
 		c.SetFontSize(float64(i.FontSize))

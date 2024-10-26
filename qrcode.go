@@ -45,6 +45,7 @@ type QrCodeGen struct {
 	HalftoneSrcFile string
 	Width           OutputSize
 	OutputFileType  FileType
+	Path            string
 }
 
 func NewQuCodeGen(content string, opts ...Option) *QrCodeGen {
@@ -93,6 +94,12 @@ func WithOutputFileType(fileType FileType) Option {
 func WithOutputFileSize(size OutputSize) Option {
 	return func(c *QrCodeGen) {
 		c.Width = size
+	}
+}
+
+func WithPath(path string) Option {
+	return func(c *QrCodeGen) {
+		c.Path = path
 	}
 }
 
@@ -158,7 +165,7 @@ func (g *QrCodeGen) GenQrCode() (string, error) {
 		}...)
 	}
 
-	w, err := standard.New(fmt.Sprintf("%s/%s", "./static", qrFileName), imageOptions...)
+	w, err := standard.New(fmt.Sprintf("%s/%s", fmt.Sprintf(".%s", g.Path), qrFileName), imageOptions...)
 	if err != nil {
 		log.Errorf("qrcode.NewWith error: %v", err)
 		return "", err

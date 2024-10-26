@@ -147,7 +147,7 @@
                     }
                     return resp.json(); // 解析 JSON 数据
                 }).then(data => {
-                    window.location.href = `/static/${data.data}`;
+                    window.location.href = data.data;
                 })
             }
         }
