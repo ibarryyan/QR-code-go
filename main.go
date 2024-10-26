@@ -118,7 +118,7 @@ func success(w http.ResponseWriter, r *http.Request) {
 func runHttp() {
 	tmpPath := fmt.Sprintf("%s/", GetGlobalConfig().TmpPath)
 
-	listen, err := net.Listen("tcp", fmt.Sprintf(":%s", GetGlobalConfig().Port))
+	listen, err := net.Listen("tcp", fmt.Sprintf(":%d", GetGlobalConfig().Port))
 	if err != nil {
 		panic(err)
 	}

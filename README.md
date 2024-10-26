@@ -20,3 +20,11 @@ http://yankaka.chat:8081/static/
 ### 博客
 
 TODO
+
+### Docker build
+
+```shell
+docker build -t qrcode .
+
+docker run -d -p 8081:8081 qrcode
+```
