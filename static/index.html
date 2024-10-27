@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>拼图小游戏</title>
     <style>
-       .modal {
+        .modal {
             /* display: none; */
             position: fixed;
             z-index: 1;
@@ -17,7 +17,7 @@
             background-color: rgba(0, 0, 0, 0.4);
         }
 
-       .modal-content {
+        .modal-content {
             background-color: #fefefe;
             margin: 15% auto;
             padding: 20px;
@@ -27,9 +27,10 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            margin-top: 6%;
         }
 
-       .close {
+        .close {
             color: #aaa;
             float: right;
             font-size: 28px;
@@ -37,13 +38,13 @@
             cursor: pointer;
         }
 
-       .close:hover,.close:focus {
+        .close:hover, .close:focus {
             color: black;
             text-decoration: none;
             cursor: pointer;
         }
 
-       .input-container {
+        .input-container {
             width: 100%;
             margin-bottom: 20px;
             display: flex;
@@ -51,24 +52,24 @@
             align-items: center;
         }
 
-       .input-container label {
+        .input-container label {
             margin-bottom: 5px;
         }
 
-       .input-container input {
+        .input-container input {
             width: 80%;
             padding: 10px;
             border: 1px solid #aaa;
             border-radius: 5px;
         }
 
-       .img-container {
+        .img-container {
             width: 100%;
             display: flex;
             justify-content: space-around;
         }
 
-       .img-container img {
+        .img-container img {
             width: 80px;
             height: 80px;
             object-fit: cover;
@@ -77,70 +78,70 @@
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
         }
 
-       .selected-avatar {
+        .selected-avatar {
             border: 3px solid #007bff;
         }
     </style>
 </head>
 <body>
-    <!-- <button id="openModalBtn">打开弹框</button> -->
-
-    <div id="myModal" class="modal">
-        <div class="modal-content">
-            <!-- <span class="close">&times;</span> -->
-            <h2>选择你的用户名和拼图</h2>
-            <div class="input-container">
-                <label for="username">用户名：</label>
-                <input type="text" id="username">
-            </div>
-            <div class="img-container">
-                <img src="p1.png" alt="Avatar 1" id="p1" onclick="selectAvatar(this)">
-                <img src="p2.png" alt="Avatar 2" id="p2" onclick="selectAvatar(this)">
-                <img src="p3.png" alt="Avatar 3" id="p3" onclick="selectAvatar(this)">
-                <img src="p4.png" alt="Avatar 4" id="p4" onclick="selectAvatar(this)">
-                <img src="p5.png" alt="Avatar 5" id="p5" onclick="selectAvatar(this)">
-            </div>
-            <br/>
-            <button id="modalSubmit">确定</button>
+<div id="myModal" class="modal">
+    <div class="modal-content">
+        <h2>选择你的用户名和拼图</h2>
+        <div class="input-container">
+            <label for="username">用户名：</label>
+            <input type="text" id="username">
         </div>
+        <div class="img-container">
+            <img src="p1.png" alt="Avatar 1" id="p1" onclick="selectAvatar(this)">
+            <img src="p2.png" alt="Avatar 2" id="p2" onclick="selectAvatar(this)">
+            <img src="p3.png" alt="Avatar 3" id="p3" onclick="selectAvatar(this)">
+            <img src="p4.png" alt="Avatar 4" id="p4" onclick="selectAvatar(this)">
+            <img src="p5.png" alt="Avatar 5" id="p5" onclick="selectAvatar(this)">
+        </div>
+        <br/>
+        <button id="modalSubmit">确定</button>
+        <h4>-------------欢迎关注我的公众号-------------</h4>
+        <img src="gzh.png" width="180">
+        <h6>关注后回复【qrcode】可获得源码</h6>
     </div>
+</div>
 
-    <script>
-        // 获取模态框和按钮
-        var modal = document.getElementById('myModal');
+<script>
+    // 获取模态框和按钮
+    var modal = document.getElementById('myModal');
 
-        // 点击头像选择
-        function selectAvatar(img) {
-            // 取消所有头像的选中状态
-            var avatars = document.getElementsByClassName('img-container')[0].getElementsByTagName('img');
-            for (var i = 0; i < avatars.length; i++) {
-                avatars[i].classList.remove('selected-avatar');
-            }
-
-            // 设置当前头像为选中状态
-            img.classList.add('selected-avatar');
+    // 点击头像选择
+    function selectAvatar(img) {
+        // 取消所有头像的选中状态
+        var avatars = document.getElementsByClassName('img-container')[0].getElementsByTagName('img');
+        for (var i = 0; i < avatars.length; i++) {
+            avatars[i].classList.remove('selected-avatar');
         }
 
-        // 获取用户名和选中的头像
-        function getUserInfo() {
-            var username = document.getElementById('username').value;
-            var avatar = document.querySelector('.img-container img.selected-avatar');
+        // 设置当前头像为选中状态
+        img.classList.add('selected-avatar');
+    }
 
-            if (username && avatar) {
-                var imgId = avatar.id;
-                // 这里可以进行后续操作，比如将用户名和头像信息发送到服务器
-                console.log('用户名：' + username);
-                console.log('头像：' + imgId);
-                // 跳转到
-                // modal.style.display = 'none';
-                window.open(`./play.html?username=${username}&imgId=${imgId}`, '_self');
-            } else {
-                alert('请输入用户名并选择头像！');
-            }
+    // 获取用户名和选中的头像
+    function getUserInfo() {
+        var username = document.getElementById('username').value;
+        var avatar = document.querySelector('.img-container img.selected-avatar');
+
+        if (username && avatar) {
+            var imgId = avatar.id;
+            // 这里可以进行后续操作，比如将用户名和头像信息发送到服务器
+            console.log('用户名：' + username);
+            console.log('头像：' + imgId);
+            // 跳转到
+            // modal.style.display = 'none';
+            window.open(`./play.html?username=${username}&imgId=${imgId}`, '_self');
+        } else {
+            alert('请输入用户名并选择头像！');
         }
+    }
 
-        // 监听按钮点击事件
-        document.getElementById('modalSubmit').addEventListener('click', getUserInfo);
-    </script>
+    // 监听按钮点击事件
+    document.getElementById('modalSubmit').addEventListener('click', getUserInfo);
+</script>
 </body>
 </html>

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	"io"
@@ -22,6 +23,17 @@ const (
 	FontPath     = "./font/hanyiyongzidingshenggaojianti.ttf"
 	TemplatePath = "./img/zht.jpeg"
 )
+
+var (
+	httpRequestsTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "http_requests_total",
+		Help: "Total number of HTTP requests.",
+	})
+)
+
+func init() {
+	prometheus.MustRegister(httpRequestsTotal)
+}
 
 func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	successUrl := fmt.Sprintf("%s/success", GetGlobalConfig().Domain)
