@@ -1,4 +1,4 @@
 server:
   port: 8081
   tmp-path: /tmp
-  domain: http://localhost:8081
+  domain: http://yankaka.chat:8081

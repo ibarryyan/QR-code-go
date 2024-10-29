@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Req struct {
@@ -25,14 +26,19 @@ const (
 )
 
 var (
-	httpRequestsTotal = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "http_requests_total",
-		Help: "Total number of HTTP requests.",
+	requestsTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "qrcode_http_requests_total",
+		Help: "Total number of HTTP requests",
 	})
+	requestsTotalVec = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "qrcode_http_requests_total_vec",
+		Help: "Total number of HTTP requests",
+	}, []string{"uri"})
 )
 
 func init() {
-	prometheus.MustRegister(httpRequestsTotal)
+	prometheus.MustRegister(requestsTotal)
+	prometheus.MustRegister(requestsTotalVec)
 }
 
 func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
@@ -127,6 +133,16 @@ func success(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, redirectUrl, http.StatusFound)
 }
 
+func withMetricsHandler(f func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			requestsTotal.Inc()
+			requestsTotalVec.WithLabelValues(r.URL.Path).Inc()
+		}()
+		f(w, r)
+	}
+}
+
 func runHttp() {
 	tmpPath := fmt.Sprintf("%s/", GetGlobalConfig().TmpPath)
 
@@ -135,10 +151,11 @@ func runHttp() {
 		panic(err)
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/qrcode/gen", uploadFileHandler)
-	mux.HandleFunc("/success", success)
+	mux.HandleFunc("/qrcode/gen", withMetricsHandler(uploadFileHandler))
+	mux.HandleFunc("/success", withMetricsHandler(success))
 	mux.Handle("/static/", http.StripPrefix("/", http.FileServer(http.Dir("."))))
 	mux.Handle(tmpPath, http.StripPrefix("/", http.FileServer(http.Dir("."))))
+	mux.Handle("/metrics", promhttp.Handler())
 	_ = http.Serve(listen, mux)
 }
 
