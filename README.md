@@ -23,7 +23,7 @@ http://yankaka.chat:8081/static/
 
 - [带你用Go实现二维码小游戏（中）](https://mp.weixin.qq.com/s?__biz=MzIxNDc2ODc3MA==&mid=2247487835&idx=1&sn=2dbb73c69242602f75573bbe14535fd6&chksm=97a3dcb6a0d455a0e872bb1d417d33fed433d235ad506c49eaa0a7a57c7541d57fc0e1eda58a#rd)
 
-- [带你用Go实现二维码小游戏（下）]()
+- [带你用Go实现二维码小游戏（下）](https://mp.weixin.qq.com/s/D5mDlqWnnoJruVZbq2e2SQ)
 
 ### Docker build
 
