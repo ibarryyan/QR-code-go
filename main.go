@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	"io"
@@ -11,7 +13,6 @@ import (
 	"net/http"
 	"os"
 	"time"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Req struct {
@@ -23,6 +24,9 @@ type Req struct {
 const (
 	FontPath     = "./font/hanyiyongzidingshenggaojianti.ttf"
 	TemplatePath = "./img/zht.jpeg"
+
+	ExecStart = 0
+	ExecClean = 1
 )
 
 var (
@@ -36,9 +40,14 @@ var (
 	}, []string{"uri"})
 )
 
+var exec int
+
 func init() {
 	prometheus.MustRegister(requestsTotal)
 	prometheus.MustRegister(requestsTotalVec)
+
+	flag.IntVar(&exec, "exec", 0, "0: start server; 1: clean file")
+	flag.Parse()
 }
 
 func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
@@ -162,8 +171,20 @@ func runHttp() {
 func main() {
 	InitConfig()
 
-	log.Infof("starting server config: %+v", GetGlobalConfig())
+	log.Infof("starting server config:%+v, exec:%v", GetGlobalConfig(), exec)
 
-	_ = os.Mkdir(fmt.Sprintf(".%s/", GetGlobalConfig().TmpPath), os.ModePerm)
-	runHttp()
+	switch exec {
+	case ExecStart:
+		_ = os.Mkdir(fmt.Sprintf(".%s/", GetGlobalConfig().TmpPath), os.ModePerm)
+		go func() {
+			CleanTask()
+		}()
+		runHttp()
+	case ExecClean:
+		if err := CleanTmpFile(GetGlobalConfig().TmpPath); err != nil {
+			log.Errorf("clean tmp file err:%s", err)
+		}
+	default:
+		fmt.Println("exec err")
+	}
 }

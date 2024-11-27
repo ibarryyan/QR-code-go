@@ -2,3 +2,6 @@ server:
   port: 8081
   tmp-path: /tmp
   domain: http://yankaka.chat:8081
+
+task:
+  cron: '* * * * *'
